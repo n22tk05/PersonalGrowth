@@ -6,7 +6,7 @@ import { Icon } from "../ui/icon";
 import { X } from "lucide-react-native";
 import { SegmentedControl } from "../ui/segmented-control";
 import { journalApi } from "@/services/journal.service";
-import { MOOD } from "@/types/type";
+import { MOOD } from "@/types";
 
 interface JournalModalProps {
   visible: boolean;

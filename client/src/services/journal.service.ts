@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { MOOD } from "@/types/type";
+import { MOOD } from "@/types";
 
 export interface UpdateJournalPayload {
   name: string;

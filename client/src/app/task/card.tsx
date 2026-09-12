@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text";
 import { Icon } from "@/components/ui/icon";
 import { LucideIcon } from "lucide-react-native";
 import { cn } from "@/lib/utils";
-import { TASK_STATUS } from "@/types/type";
+import { TASK_STATUS } from "@/types";
 import { View } from "react-native";
 
 export default function TaskCard({
