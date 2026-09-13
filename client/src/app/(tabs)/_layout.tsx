@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { Platform } from 'react-native';
 import { Icon } from '@/components/ui/icon';
-import { Home, Calendar as CalendarIcon, Leaf, BookOpen } from 'lucide-react-native';
+import { Home, Calendar as CalendarIcon, Leaf, BookOpen, User } from 'lucide-react-native';
 
 export default function TabLayout() {
   const colorScheme = 'light';
@@ -48,6 +48,13 @@ export default function TabLayout() {
         options={{
           title: 'Nhật ký',
           tabBarIcon: ({ color }) => <Icon as={BookOpen} size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Hồ sơ',
+          tabBarIcon: ({ color }) => <Icon as={User} size={24} color={color} />,
         }}
       />
     </Tabs>

@@ -33,6 +33,7 @@ import { dashboardApi, DashboardSummaryResponse } from "@/services/dashboard.ser
 import { taskApi, Task as ApiTask } from "@/services/task.service";
 import { habitApi, Habit as ApiHabit } from "@/services/habit.service";
 import { dayReviewApi, DayReview } from "@/services/day-review.service";
+import { userApi } from "@/services/user.service";
 
 interface HabitItem {
   id: string;
@@ -49,6 +50,7 @@ export default function HomeScreen() {
   const [todayTasks, setTodayTasks] = useState<ApiTask[]>([]);
   const [habits, setHabits] = useState<HabitItem[]>([]);
   const [todayReview, setTodayReview] = useState<DayReview | null>(null);
+  const [userName, setUserName] = useState<string>("bạn");
 
   useEffect(() => {
     loadDashboardData();
@@ -135,6 +137,15 @@ export default function HomeScreen() {
       } catch (e) {
         setTodayReview(null);
       }
+
+      // 5. Lấy thông tin User profile để hiển thị lời chào
+      try {
+        const meRes = await userApi.getMe();
+        const me = ((meRes as any)?.data || meRes);
+        if (me?.profile?.fullName) {
+          setUserName(me.profile.fullName);
+        }
+      } catch (e) {}
     } finally {
       setIsRefreshing(false);
     }
@@ -268,7 +279,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View className="flex-row justify-between items-center pb-5 pt-1">
           <View className="flex-col flex-1 pr-4">
-            <Text variant="h3">Chào buổi sáng, Khánh 👋</Text>
+            <Text variant="h3">Chào buổi sáng, {userName} 👋</Text>
             <Text variant="muted" className="text-xs mt-0.5">
               Hôm nay là một ngày tuyệt vời để phát triển bản thân!
             </Text>
@@ -279,7 +290,13 @@ export default function HomeScreen() {
               <Icon as={Bell} size={26} color="#374151" />
               <View className="w-2.5 h-2.5 rounded-full bg-error absolute top-0 right-0 border border-white z-10" />
             </View>
-            <Icon as={CircleUser} size={36} color="#374151" />
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/profile" as any)}
+              hitSlop={8}
+              activeOpacity={0.7}
+            >
+              <Icon as={CircleUser} size={36} color="#374151" />
+            </TouchableOpacity>
           </View>
         </View>
 
