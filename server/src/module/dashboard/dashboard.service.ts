@@ -20,7 +20,16 @@ export class DashboardService {
       this.prisma.task.count({
         where: {
           userId,
-          createdAt: { lte: endOfDay },
+          OR: [
+            { dueDate: { gte: startOfDay, lte: endOfDay } },
+            {
+              dueDate: null,
+              createdAt: { gte: startOfDay, lte: endOfDay },
+            },
+            {
+              completedAt: { gte: startOfDay, lte: endOfDay },
+            },
+          ],
         }
       }),
       this.prisma.task.count({
@@ -44,8 +53,9 @@ export class DashboardService {
       })
     ]);
 
-    const taskCompletionRate = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
-    const habitCompletionRate = totalHabits === 0 ? 0 : Math.round((completedHabits / totalHabits) * 100);
+    const effectiveTotalTasks = Math.max(totalTasks, completedTasks);
+    const taskCompletionRate = effectiveTotalTasks === 0 ? 0 : Math.min(100, Math.round((completedTasks / effectiveTotalTasks) * 100));
+    const habitCompletionRate = totalHabits === 0 ? 0 : Math.min(100, Math.round((completedHabits / totalHabits) * 100));
 
     return {
       date: startOfDay.toISOString().split("T")[0],

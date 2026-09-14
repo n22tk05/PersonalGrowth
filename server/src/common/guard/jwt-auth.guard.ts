@@ -6,15 +6,8 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { PrismaClient } from '../../../generated/prisma/client.js';
-import { PrismaPg } from '@prisma/adapter-pg';
-import 'dotenv/config';
 import { ConfigService } from '@nestjs/config';
 import { JwtPayLoad } from '../../module/auth/auth.type.js';
-
-const connectionString = `${process.env.DATABASE_URL}`;
-const adapter = new PrismaPg({ connectionString });
-const prismaClient = new PrismaClient({ adapter });
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -32,7 +25,10 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const secret = this.configService.get<string>('JWT_ACCESS_SECRET') && 'fallbackSecretKey'
+      const secret =
+        this.configService.get<string>('JWT_ACCESS_SECRET') ??
+        this.configService.get<string>('JWT_SECRET') ??
+        'fallbackSecretKey';
       const payload = await this.jwtService.verifyAsync<JwtPayLoad>(token, {
         secret
       })

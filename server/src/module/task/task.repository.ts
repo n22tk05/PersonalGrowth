@@ -39,7 +39,15 @@ export default class TaskRepository {
       where.categoryId = filter.categoryId;
     }
     if (filter.dueDate) {
-      where.dueDate = new Date(filter.dueDate);
+      const targetDate = new Date(filter.dueDate);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      where.dueDate = {
+        gte: startOfDay,
+        lte: endOfDay,
+      };
     }
 
     return await this.prisma.task.findMany({

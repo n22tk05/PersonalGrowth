@@ -63,13 +63,20 @@ export default class HabitService {
       }
     }
 
-    // Tính Completion Rate
+    // Tính Completion Rate theo tần suất
     const createdDate = new Date(habit.createdAt);
     const createdDateStr = new Date(createdDate.getTime() - createdDate.getTimezoneOffset() * 60000).toISOString().split('T')[0];
     const diffTimeSinceCreation = Math.abs(new Date(todayStr).getTime() - new Date(createdDateStr).getTime());
     const totalDaysSinceCreation = Math.max(1, Math.round(diffTimeSinceCreation / (1000 * 60 * 60 * 24)) + 1); // +1 để tính cả ngày tạo
     
-    const completionRate = Math.round((uniqueDates.length / totalDaysSinceCreation) * 100);
+    let expectedTimes = totalDaysSinceCreation;
+    if (habit.frequency === "WEEKLY") {
+      expectedTimes = Math.max(1, Math.ceil(totalDaysSinceCreation / 7));
+    } else if (habit.frequency === "MONTHLY") {
+      expectedTimes = Math.max(1, Math.ceil(totalDaysSinceCreation / 30));
+    }
+
+    const completionRate = Math.round((uniqueDates.length / expectedTimes) * 100);
 
     return {
       streak: {

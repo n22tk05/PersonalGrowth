@@ -5,7 +5,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import AuthRepository from './auth.repository.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
-import { TokenInterceptor } from '../../common/interceptor/token.interceptor.js';
 
 @Global()
 @Module({
@@ -22,7 +21,7 @@ import { TokenInterceptor } from '../../common/interceptor/token.interceptor.js'
     PrismaModule
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthRepository, TokenInterceptor],
+  providers: [AuthService, AuthRepository],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

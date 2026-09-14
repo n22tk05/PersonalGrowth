@@ -1,7 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { CategoryResponse } from "./category.type.js";
 import CategoryRepository from "./category.repository.js";
-import { ENHANCER_TOKEN_TO_SUBTYPE_MAP } from "@nestjs/core/constants.js";
 import { CreateCategoryDto, UpdateCategoryDto } from "./category.dto.js";
 
 @Injectable()

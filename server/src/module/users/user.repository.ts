@@ -14,17 +14,25 @@ export class UserRepository {
   }
 
   async updateProfile(data: Profile, userId: string) {
-    await this.prisma.profile.update({
+    await this.prisma.profile.upsert({
       where: { userId },
-      data,
+      update: data,
+      create: {
+        userId,
+        ...data,
+      },
     });
     return this.findById(userId);
   }
 
   async updateSetting(data: Setting, userId: string) {
-    await this.prisma.profile.update({
+    await this.prisma.profile.upsert({
       where: { userId },
-      data,
+      update: data,
+      create: {
+        userId,
+        ...data,
+      },
     });
     return this.findById(userId);
   }

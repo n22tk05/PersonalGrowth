@@ -97,8 +97,7 @@ export default class HabitRepository {
     return await this.prisma.habitRecord.delete({
       where: {
         id: recordId,
-        habitId: id
-      }
-    })
+      },
+    });
   }
 }
