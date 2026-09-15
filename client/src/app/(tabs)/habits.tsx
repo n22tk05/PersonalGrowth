@@ -23,6 +23,9 @@ import {
   Check,
   Plus,
   X,
+  Bot,
+  Sparkles,
+  Target,
   LucideIcon,
 } from "lucide-react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -30,6 +33,8 @@ import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { Calendar } from "@/components/ui/calendar";
 import { habitApi, Habit } from "@/services/habit.service";
+import { dashboardApi, type AnalyticsResponse } from "@/services/dashboard.service";
+import HabitAnalyticsView from "@/components/habits/HabitAnalyticsView";
 
 interface HabitItem {
   id: string;
@@ -198,9 +203,43 @@ export default function HabitsScreen() {
     }
   };
 
+  // Analytics state
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsResponse | null>(null);
+  const [analyticsRange, setAnalyticsRange] = useState<"7d" | "30d">("7d");
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+
+  const fetchAnalytics = async (range: "7d" | "30d" = analyticsRange) => {
+    try {
+      setIsLoadingAnalytics(true);
+      const res = await dashboardApi.getAnalytics({ range });
+      let actualData: AnalyticsResponse | null = null;
+      if ((res as any)?.data?.data) {
+        actualData = (res as any).data.data;
+      } else if ((res as any)?.data) {
+        actualData = (res as any).data;
+      } else {
+        actualData = res as AnalyticsResponse;
+      }
+      setAnalyticsData(actualData);
+    } catch (err) {
+      console.log("Lỗi khi tải dữ liệu thống kê:", err);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "Thống kê") {
+      fetchAnalytics(analyticsRange);
+    }
+  }, [activeTab, analyticsRange]);
+
   const onRefresh = () => {
     setIsRefreshing(true);
     fetchHabitsFromApi();
+    if (activeTab === "Thống kê") {
+      fetchAnalytics(analyticsRange);
+    }
   };
 
   // Xử lý Tích chọn / Hủy tích chọn hoàn thành (Checkbox toggle)
@@ -391,133 +430,176 @@ export default function HabitsScreen() {
           })}
         </ScrollView>
 
-        {/* ==================== 4. HABIT CỦA TÔI CARD SECTION ==================== */}
-        <Card className="rounded-3xl p-4 mb-4 bg-card border-border shadow-xs">
-          {/* Header Row */}
-          <View className="flex-row items-center justify-between ">
-            <Text variant="h3">
-              Habit của tôi
-            </Text>
-            <TouchableOpacity className="flex-row items-center gap-1">
-              <Text variant="caption">
-                Sắp xếp
-              </Text>
-              <Icon as={ChevronDown} size={16} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
+        {/* ==================== 4. CONDITIONAL TAB VIEWS ==================== */}
+        {activeTab === "Thống kê" && (
+          <HabitAnalyticsView
+            data={analyticsData}
+            isLoading={isLoadingAnalytics}
+            selectedRange={analyticsRange}
+            onSelectRange={(range) => {
+              setAnalyticsRange(range);
+              fetchAnalytics(range);
+            }}
+            onRefresh={() => fetchAnalytics(analyticsRange)}
+          />
+        )}
 
-          {/* Danh sách các Habit */}
-          {habits.map((item) => {
-            return (
-              <View
-                key={item.id}
-                className="mb-1 bg-background border border-border rounded-2xl p-2 flex-row items-center justify-between"
-              >
-                {/* Left Icon Square */}
-                <View
-                  className={`w-11 h-11 rounded-2xl items-center justify-center mr-3 ${item.bgColor}`}
-                >
-                  <Icon
-                    as={item.icon}
-                    size={22}
-                    color={item.color}
-                  />
-                </View>
-
-                {/* Body Content */}
-                <View className="flex-1 mr-2">
-                  {/* Row 1: Title & Streak */}
-                  <View className="flex-row items-center justify-between mb-1">
-                    <Text className="font-bold text-sm text-foreground">
-                      {item.name}
-                    </Text>
-                    <View className="flex-row items-center gap-0.5">
-                      <Icon as={Flame} size={12} color="#EF4444" />
-                      <Text className="text-[11px] font-semibold text-muted-foreground">
-                        {item.streakDays} ngày
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Row 2: Subtitles */}
-                  <View className="flex-row items-center gap-2 mb-2">
-                    <Text className="text-[11px] text-muted-foreground font-medium">
-                      {item.rule}
-                    </Text>
-                    <Text className="text-[11px] text-muted-foreground/60">•</Text>
-                    <View className="flex-row items-center gap-0.5">
-                      <Icon
-                        as={item.name.includes("nước") ? Droplets : Clock}
-                        size={11}
-                        color={item.color}
-                      />
-                      <Text
-                        style={{ color: item.color }}
-                        className="text-[11px] font-semibold"
-                      >
-                        {item.detail}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Row 3: Horizontal Progress Bar & Percentage */}
-                  <View className="flex-row items-center gap-2">
-                    <View className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <View
-                        style={{
-                          width: `${item.progress}%`,
-                          backgroundColor: item.color,
-                        }}
-                        className="h-full rounded-full"
-                      />
-                    </View>
-                    <Text className="text-[10px] font-bold text-muted-foreground w-7 text-right">
-                      {item.progress}%
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Right Checkbox Circle */}
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => toggleCheck(item.id)}
-                  className="ml-1"
-                >
-                  {item.checked ? (
-                    <View className="w-7 h-7 rounded-full bg-emerald-500 items-center justify-center shadow-xs">
-                      <Icon as={Check} size={16} color="#FFFFFF" />
-                    </View>
-                  ) : (
-                    <View className="w-7 h-7 rounded-full border-2 border-muted-foreground/30 bg-transparent" />
-                  )}
+        {activeTab === "Hôm nay" && (
+          <>
+            {/* HABIT CỦA TÔI CARD SECTION */}
+            <Card className="rounded-3xl p-4 mb-4 bg-card border-border shadow-xs">
+              {/* Header Row */}
+              <View className="flex-row items-center justify-between mb-3">
+                <Text variant="h3">Habit của tôi</Text>
+                <TouchableOpacity className="flex-row items-center gap-1">
+                  <Text variant="caption">Sắp xếp</Text>
+                  <Icon as={ChevronDown} size={16} color="#6B7280" />
                 </TouchableOpacity>
               </View>
-            );
-          })}
 
-          {/* Bottom Button inside Card */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setIsAddModalOpen(true)}
-            className="w-full py-3 bg-emerald-500 rounded-xl items-center justify-center flex-row gap-1.5"
-          >
-            <Icon as={Plus} size={18} color="#fff" />
-            <Text className="font-bold text-md text-[#fff]">
-              Thêm habit mới
-            </Text>
-          </TouchableOpacity>
-        </Card>
+              {/* Danh sách các Habit */}
+              {habits.map((item) => {
+                return (
+                  <View
+                    key={item.id}
+                    className="mb-2 bg-background border border-border rounded-2xl p-3 flex-row items-center justify-between"
+                  >
+                    {/* Left Icon Square */}
+                    <View
+                      className={`w-11 h-11 rounded-2xl items-center justify-center mr-3 ${item.bgColor}`}
+                    >
+                      <Icon as={item.icon} size={22} color={item.color} />
+                    </View>
 
-        {/* ==================== 5. LỊCH HABIT SECTION (Giữ phần Lịch của bạn) ==================== */}
+                    {/* Body Content */}
+                    <View className="flex-1 mr-2">
+                      {/* Row 1: Title & Streak */}
+                      <View className="flex-row items-center justify-between mb-1">
+                        <Text className="font-bold text-sm text-foreground">
+                          {item.name}
+                        </Text>
+                        <View className="flex-row items-center gap-0.5">
+                          <Icon as={Flame} size={12} color="#EF4444" />
+                          <Text className="text-[11px] font-semibold text-muted-foreground">
+                            {item.streakDays} ngày
+                          </Text>
+                        </View>
+                      </View>
 
-          <Card className="rounded-3xl p-3 bg-card border-border shadow-xs overflow-hidden mb-6">
+                      {/* Row 2: Subtitles */}
+                      <View className="flex-row items-center gap-2 mb-2">
+                        <Text className="text-[11px] text-muted-foreground font-medium">
+                          {item.rule}
+                        </Text>
+                        <Text className="text-[11px] text-muted-foreground/60">•</Text>
+                        <View className="flex-row items-center gap-0.5">
+                          <Icon
+                            as={item.name.includes("nước") ? Droplets : Clock}
+                            size={11}
+                            color={item.color}
+                          />
+                          <Text
+                            style={{ color: item.color }}
+                            className="text-[11px] font-semibold"
+                          >
+                            {item.detail}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Row 3: Horizontal Progress Bar & Percentage */}
+                      <View className="flex-row items-center gap-2">
+                        <View className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <View
+                            style={{
+                              width: `${item.progress}%`,
+                              backgroundColor: item.color,
+                            }}
+                            className="h-full rounded-full"
+                          />
+                        </View>
+                        <Text className="text-[10px] font-bold text-muted-foreground w-7 text-right">
+                          {item.progress}%
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Right Checkbox Circle */}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => toggleCheck(item.id)}
+                      className="ml-1"
+                    >
+                      {item.checked ? (
+                        <View className="w-7 h-7 rounded-full bg-emerald-500 items-center justify-center shadow-xs">
+                          <Icon as={Check} size={16} color="#FFFFFF" />
+                        </View>
+                      ) : (
+                        <View className="w-7 h-7 rounded-full border-2 border-muted-foreground/30 bg-transparent" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+
+              {/* Bottom Button inside Card */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setIsAddModalOpen(true)}
+                className="w-full py-3 bg-emerald-500 rounded-xl items-center justify-center flex-row gap-1.5 mt-2"
+              >
+                <Icon as={Plus} size={18} color="#fff" />
+                <Text className="font-bold text-md text-[#fff]">Thêm habit mới</Text>
+              </TouchableOpacity>
+            </Card>
+
+            {/* LỊCH MINI NGAY DƯỚI */}
+            <Card className="rounded-3xl p-3 bg-card border-border shadow-xs overflow-hidden mb-6">
+              <Calendar
+                onDayPress={(day: any) => setSelectedDate(day.dateString)}
+                markedDates={(() => {
+                  const todayStr = new Date().toISOString().split("T")[0];
+                  const baseDates: Record<string, any> = {};
+
+                  const completedHabits = habits.filter((h) => h.checked);
+                  if (completedHabits.length > 0) {
+                    baseDates[todayStr] = {
+                      dots: completedHabits.map((h) => ({ color: h.color })),
+                    };
+                  }
+
+                  if (selectedDate) {
+                    const existing = baseDates[selectedDate] || {};
+                    baseDates[selectedDate] = {
+                      ...existing,
+                      selected: true,
+                      selectedColor: "#22C55E",
+                    };
+                  }
+
+                  return baseDates;
+                })()}
+                hideExtraDays={true}
+                firstDay={1}
+              />
+            </Card>
+          </>
+        )}
+
+        {activeTab === "Lịch" && (
+          <Card className="rounded-3xl p-4 bg-card border-border shadow-xs overflow-hidden mb-6">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text variant="h3">Lịch theo dõi thói quen</Text>
+              <Text className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                Ngày: {selectedDate}
+              </Text>
+            </View>
             <Calendar
               onDayPress={(day: any) => setSelectedDate(day.dateString)}
               markedDates={(() => {
                 const todayStr = new Date().toISOString().split("T")[0];
                 const baseDates: Record<string, any> = {};
 
-                // Đánh dấu các chấm màu habit cho hôm nay nếu có hoàn thành
                 const completedHabits = habits.filter((h) => h.checked);
                 if (completedHabits.length > 0) {
                   baseDates[todayStr] = {
@@ -536,10 +618,119 @@ export default function HabitsScreen() {
 
                 return baseDates;
               })()}
-              hideExtraDays={true}
+              hideExtraDays={false}
               firstDay={1}
             />
+
+            {/* Chi tiết ngày đang chọn */}
+            <View className="mt-4 pt-3 border-t border-border">
+              <Text className="text-xs font-bold text-muted-foreground mb-2">
+                THÓI QUEN TRONG NGÀY {selectedDate}
+              </Text>
+              {habits.map((h) => (
+                <View
+                  key={h.id}
+                  className="flex-row items-center justify-between py-2 border-b border-border/40"
+                >
+                  <View className="flex-row items-center gap-2">
+                    <View
+                      style={{ backgroundColor: `${h.color}20` }}
+                      className="w-6 h-6 rounded-md items-center justify-center"
+                    >
+                      <Icon as={h.icon} size={13} color={h.color} />
+                    </View>
+                    <Text className="text-sm font-semibold text-foreground">{h.name}</Text>
+                  </View>
+                  <Text className="text-xs text-muted-foreground">
+                    Chuỗi: {h.streakDays} ngày
+                  </Text>
+                </View>
+              ))}
+            </View>
           </Card>
+        )}
+
+        {activeTab === "AI Coach" && (
+          <Card className="rounded-3xl p-5 bg-card border-border shadow-xs mb-6">
+            <View className="flex-row items-center gap-3 mb-4">
+              <View className="w-12 h-12 rounded-2xl bg-emerald-500/15 items-center justify-center">
+                <Icon as={Bot} size={26} color="#10B981" />
+              </View>
+              <View className="flex-1">
+                <Text variant="h3">AI Habit Coach</Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">
+                  Trợ lý thông minh phân tích và tối ưu thói quen
+                </Text>
+              </View>
+            </View>
+
+            <View className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20 mb-4">
+              <View className="flex-row items-center gap-2 mb-1.5">
+                <Icon as={Sparkles} size={16} color="#10B981" />
+                <Text className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                  Lời khuyên hôm nay
+                </Text>
+              </View>
+              <Text className="text-xs text-foreground/80 leading-relaxed font-medium">
+                Dựa trên thói quen hiện tại, bạn có xu hướng hoàn thành tốt nhất vào buổi sáng.
+                Hãy tiếp tục gắn thói quen mới vào chuỗi thói quen đã vững chắc này để duy trì tỷ lệ thành công cao nhất!
+              </Text>
+            </View>
+
+            <View className="p-3 bg-muted/40 rounded-2xl border border-border">
+              <Text className="text-xs font-bold text-foreground mb-1">
+                Gợi ý quy tắc 2 phút (Atomic Habits)
+              </Text>
+              <Text className="text-xs text-muted-foreground leading-relaxed">
+                Khi bắt đầu một thói quen mới, hãy làm nó trong ít hơn 2 phút để biến nó thành một phần tự nhiên trong ngày mà không tạo áp lực.
+              </Text>
+            </View>
+          </Card>
+        )}
+
+        {activeTab === "Thử thách" && (
+          <Card className="rounded-3xl p-5 bg-card border-border shadow-xs mb-6">
+            <View className="flex-row items-center gap-3 mb-4">
+              <View className="w-12 h-12 rounded-2xl bg-amber-500/15 items-center justify-center">
+                <Icon as={Trophy} size={24} color="#F59E0B" />
+              </View>
+              <View className="flex-1">
+                <Text variant="h3">Thử thách thói quen</Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">
+                  Chinh phục các cột mốc để nhận huy hiệu
+                </Text>
+              </View>
+            </View>
+
+            {/* Thử thách 1 */}
+            <View className="bg-background border border-border p-4 rounded-2xl mb-3">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-sm font-bold text-foreground">🔥 Kỷ luật thép (7 Ngày)</Text>
+                <Text className="text-xs font-extrabold text-amber-500">Đang thực hiện</Text>
+              </View>
+              <Text className="text-xs text-muted-foreground mb-2">
+                Hoàn thành tất cả thói quen liên tục trong 7 ngày liên tiếp.
+              </Text>
+              <View className="h-2 bg-muted rounded-full overflow-hidden">
+                <View style={{ width: "70%" }} className="h-full bg-amber-500 rounded-full" />
+              </View>
+            </View>
+
+            {/* Thử thách 2 */}
+            <View className="bg-background border border-border p-4 rounded-2xl">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-sm font-bold text-foreground">🌊 Uống nước đúng giờ (14 Ngày)</Text>
+                <Text className="text-xs font-bold text-muted-foreground">Chưa bắt đầu</Text>
+              </View>
+              <Text className="text-xs text-muted-foreground mb-2">
+                Duy trì uống đủ 2L nước mỗi ngày trong 14 ngày.
+              </Text>
+              <View className="h-2 bg-muted rounded-full overflow-hidden">
+                <View style={{ width: "20%" }} className="h-full bg-blue-500 rounded-full" />
+              </View>
+            </View>
+          </Card>
+        )}
       </ScrollView>
 
       {/* MODAL THÊM HABIT MỚI */}
